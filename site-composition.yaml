@@ -1,0 +1,49 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata: { name: site-incluster }
+spec:
+  compositeTypeRef: { apiVersion: platform.example.org/v1alpha1, kind: Site }
+  mode: Pipeline
+  pipeline:
+  - step: render
+    functionRef: { name: function-go-templating }
+    input:
+      apiVersion: gotemplating.fn.crossplane.io/v1beta1
+      kind: GoTemplate
+      source: Inline
+      inline:
+        template: |
+          {{- $xr := .observed.composite.resource }}
+          {{- if dig "spec" "cache" "enabled" false $xr }}
+          ---
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: {{ $xr.metadata.name }}-cache
+            namespace: {{ $xr.metadata.namespace }}
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: cache
+          spec:
+            replicas: 1
+            selector: { matchLabels: { app: {{ $xr.metadata.name }}-cache } }
+            template:
+              metadata: { labels: { app: {{ $xr.metadata.name }}-cache } }
+              spec:
+                containers:
+                - name: valkey
+                  image: valkey/valkey:8
+                  resources: { limits: { memory: {{ $xr.spec.cache.memory }} } }
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: {{ $xr.metadata.name }}-cache
+            namespace: {{ $xr.metadata.namespace }}
+            annotations:
+              gotemplating.fn.crossplane.io/composition-resource-name: cache-svc
+          spec:
+            selector: { app: {{ $xr.metadata.name }}-cache }
+            ports: [{ port: 6379 }]
+          {{- end }}
+  - step: ready
+    functionRef: { name: function-auto-ready }

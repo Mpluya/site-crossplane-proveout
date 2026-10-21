@@ -1,0 +1,9 @@
+apiVersion: platform.example.org/v1alpha1
+kind: Site
+metadata:
+  name: demo
+  namespace: sites
+spec:
+  cache:
+    enabled: true
+    memory: 256Mi

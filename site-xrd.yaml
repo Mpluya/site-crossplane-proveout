@@ -1,0 +1,23 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata: { name: sites.platform.example.org }
+spec:
+  scope: Namespaced
+  group: platform.example.org
+  names: { kind: Site, plural: sites }
+  versions:
+  - name: v1alpha1
+    served: true
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              cache:
+                type: object
+                properties:
+                  enabled: { type: boolean, default: false }
+                  memory:  { type: string, default: 128Mi }
